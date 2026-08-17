@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SybilClean v2 | Audit Intelligence Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #07090e;
+            --card-bg: rgba(18, 24, 38, 0.75);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --card-hover: rgba(255, 255, 255, 0.14);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --text-dim: #64748b;
+            --low-color: #10b981;
+            --low-glow: rgba(16, 185, 129, 0.15);
+            --med-color: #f59e0b;
+            --med-glow: rgba(245, 158, 11, 0.15);
+            --high-color: #ef4444;
+            --high-glow: rgba(239, 68, 68, 0.15);
+            --primary-accent: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.25);
+            --cyan-accent: #38bdf8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(56, 189, 248, 0.05) 0px, transparent 50%);
+            background-attachment: fixed;
+            color: var(--text-main);
+            padding: 2.5rem 2rem;
+            line-height: 1.5;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .logo-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, var(--primary-accent), var(--cyan-accent));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px var(--primary-glow);
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+            fill: #fff;
+        }
+
+        .logo-title h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: linear-gradient(180deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge {
+            background: rgba(99, 102, 241, 0.12);
+            color: #818cf8;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            padding: 0.3rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        /* On-Chain Disclaimer Banner */
+        .notice-banner {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            border-left: 4px solid var(--cyan-accent);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            backdrop-filter: blur(12px);
+        }
+
+        .notice-icon {
+            color: var(--cyan-accent);
+            flex-shrink: 0;
+        }
+
+        .notice-text {
+            font-size: 0.88rem;
+            color: #cbd5e1;
+        }
+
+        .notice-text strong {
+            color: #fff;
+        }
+
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.35rem 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: transparent;
+            transition: background 0.25s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            border-color: var(--card-hover);
+        }
+
+        .card-low:hover::before { background: var(--low-color); }
+        .card-med:hover::before { background: var(--med-color); }
+        .card-high:hover::before { background: var(--high-color); }
+
+        .card-title {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 0.6rem;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .value-low { color: var(--low-color); }
+        .value-med { color: var(--med-color); }
+        .value-high { color: var(--high-color); }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 960px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 330px;
+            padding: 1.5rem;
+        }
+
+        /* Table Section */
+        .table-section {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+        }
+
+        .table-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-box {
+            background: rgba(7, 9, 14, 0.8);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 0.65rem 1.1rem;
+            border-radius: 10px;
+            font-size: 0.88rem;
+            width: 320px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .search-box:focus {
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(7, 9, 14, 0.6);
+            border: 1px solid var(--card-border);
+            color: var(--text-muted);
+            padding: 0.55rem 1.1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 700;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            color: #fff;
+            border-color: var(--card-hover);
+        }
+
+        .filter-btn.active {
+            background: var(--primary-accent);
+            color: #fff;
+            border-color: var(--primary-accent);
+            box-shadow: 0 0 16px var(--primary-glow);
+        }
+
+        /* Table Design */
+        .table-container {
+            overflow-x: auto;
+            max-height: 620px;
+            overflow-y: auto;
+            border-radius: 12px;
+            border: 1px solid var(--card-border);
+        }
+
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: rgba(7, 9, 14, 0.5);
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            text-align: left;
+            font-size: 0.86rem;
+        }
+
+        th {
+            background: #0f172a;
+            color: var(--text-muted);
+            padding: 1rem 1.1rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        td {
+            padding: 1rem 1.1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            vertical-align: middle;
+            background: transparent;
+            transition: background 0.15s ease;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #cbd5e1;
+        }
+
+        /* Badges & Tags */
+        .level-badge {
+            padding: 0.25rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.73rem;
+            font-weight: 800;
+            letter-spacing: 0.03em;
+            display: inline-block;
+        }
+
+        .level-LOW { background: var(--low-glow); color: var(--low-color); border: 1px solid rgba(16, 185, 129, 0.3); }
+        .level-MEDIUM { background: var(--med-glow); color: var(--med-color); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .level-HIGH { background: var(--high-glow); color: var(--high-color); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+        .reasons-col {
+            white-space: normal !important;
+            min-width: 260px;
+            max-width: 420px;
+            line-height: 1.4;
+        }
+
+        .reason-tag {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.25rem 0.55rem;
+            margin: 0.15rem;
+            font-size: 0.76rem;
+            color: #cbd5e1;
+            word-break: break-word;
+        }
+
+        .reason-clean {
+            background: rgba(16, 185, 129, 0.08);
+            color: var(--low-color);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo-title">
+            <div class="logo-icon">
+                <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8s0 0 0 0z"/></svg>
+            </div>
+            <div>
+                <h1>SybilClean v2</h1>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="badge">Commercial Audit</span>
+            <div style="color: var(--text-muted); font-size: 0.88rem;">
+                Valid Wallets: <strong style="color: #fff;">340</strong>
+            </div>
+        </div>
+    </header>
+
+    <!-- On-Chain Context Notice Banner -->
+    <div class="notice-banner">
+        <div class="notice-icon">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>
+        </div>
+        <div class="notice-text">
+            <strong>On-Chain Evaluation Guidance:</strong> A wallet with zero SOL balance does not inherently signal bot behavior. On-chain transaction activity and interaction volume are equally critical parameters when judging wallet legitimacy.
+        </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="metrics-grid">
+        <div class="card card-low">
+            <div class="card-title">Low Risk (Clean)</div>
+            <div class="card-value value-low">327</div>
+        </div>
+        <div class="card card-med">
+            <div class="card-title">Medium Risk (Spam)</div>
+            <div class="card-value value-med">2</div>
+        </div>
+        <div class="card card-high">
+            <div class="card-title">High Risk (Sybil)</div>
+            <div class="card-value value-high">11</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Unique Accounts</div>
+            <div class="card-value">340</div>
+        </div>
+        <div class="card">
+            <div class="card-title">Funded Wallets (>0 SOL)</div>
+            <div class="card-value">172 <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">(10.62 SOL)</span></div>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+        <div class="card chart-card">
+            <canvas id="riskPieChart"></canvas>
+        </div>
+        <div class="card chart-card">
+            <canvas id="solBarChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Table Section -->
+    <div class="table-section">
+        <div class="table-header">
+            <input type="text" id="searchInput" class="search-box" placeholder="Search handle, wallet, or detection rule...">
+            <div class="filter-buttons">
+                <button class="filter-btn active" onclick="filterLevel('ALL', this)">All (340)</button>
+                <button class="filter-btn" onclick="filterLevel('FUNDED', this)">Funded (172)</button>
+                <button class="filter-btn" onclick="filterLevel('HOLDS_TOKEN', this)">Holds Token</button>
+                <button class="filter-btn" onclick="filterLevel('LOW', this)">Low (327)</button>
+                <button class="filter-btn" onclick="filterLevel('MEDIUM', this)">Medium (2)</button>
+                <button class="filter-btn" onclick="filterLevel('HIGH', this)">High (11)</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Handle</th>
+                        <th>Wallet Address</th>
+                        <th>SOL Balance</th>
+                        <th>Tx Count</th>
+                        <th>Wallet Created</th>
+                        <th>Holds Token</th>
+                        <th>Risk Score</th>
+                        <th>Risk Tier</th>
+                        <th>Verified</th>
+                        <th>Detection Reasons</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Populated dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const data = [{"handle": "@Web3Balo", "wallet": "6yYouEdVuDLuzuQH66dQHYsg6Jfwn4xv1UFiQzprG4fc", "score": 0, "level": "LOW", "sol": 0.0, "tx": 18, "wallet_created": "2025-04-15 07:09:49", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@JamesHam1146042", "wallet": "3QNpChCy1E1YQz4U1UwHvtjAbjfTT2UkpbyvxMBWsrHQ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Pokesol11", "wallet": "8LdSFpzFKrrVZk6fKdn4BetMPPZKeRVMFjt6RQAnSDRF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2026-07-16 10:27:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@911Caffe", "wallet": "7UsvTrM8dCHLvFJQBwrxkki5nmYAxAAraaNwaA6p4zUU", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-05-26 03:36:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Father000x", "wallet": "8QKRvM8TT2ysLPEt5yCr7h4eALJR5w1m48YTSGm6GeAd", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 73, "wallet_created": "2024-06-09 12:13:08", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@acethegre4t", "wallet": "J6Hkid79GqfhtYMKReJXswJrYDkEBqSV5pq9JGATScca", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@MoeeR87", "wallet": "84bnVgRSQjfvSjyaMWUpPxYcVuGnjAfxpNKyFhB6y7Tg", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@mosope03", "wallet": "99sRKkXbS3xP9cgabiq1bxvFvmeR1fSMnt3rWvaLbjED", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-04 22:11:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dpXmaki", "wallet": "AWc8qV1d1afYV6QP5gEECxnZNQwomGfGefTpKh2ScpZ3", "score": 0, "level": "LOW", "sol": 0.0015, "tx": 100, "wallet_created": "2026-08-03 20:24:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@BENOY017", "wallet": "6vXUmnJMKwaiEH85uJQXtZ353o3UBR4yVv18MzqvRhGR", "score": 0, "level": "LOW", "sol": 0.02, "tx": 3, "wallet_created": "2026-07-09 07:18:10", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@cheesetiano", "wallet": "HW6Rbhu14i6fE88RoqhHQq7SPFj2C6jvtzs3UtLzKzwj", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-09-20 05:24:14", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dagecrypto", "wallet": "87ioPtFcvoLwCVmoxxsgEtykKiATcngHZd9uNC3g3qYz", "score": 0, "level": "LOW", "sol": 0.1652, "tx": 32, "wallet_created": "2026-07-12 03:31:02", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@organicryptoyyc", "wallet": "C4ywHK4KzM3acJv7igwfk4ddi77oUhBinZ2N8tuVEk1z", "score": 0, "level": "LOW", "sol": 0.0031, "tx": 3, "wallet_created": "2026-07-05 21:38:00", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@silentmonrch", "wallet": "44h6hZN9a5HimACyCTVc4fgDZctVGosEAbTvk5ptrCQU", "score": 0, "level": "LOW", "sol": 0.0, "tx": 51, "wallet_created": "2026-01-29 15:11:23", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Aventis7", "wallet": "7LE6tF5jAwX8C5fYQNWPZXzZcWbzToCoMczHFHstqD4M", "score": 0, "level": "LOW", "sol": 0.0019, "tx": 100, "wallet_created": "2024-04-02 15:50:37", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Browmsky", "wallet": "EJMnF5MMkVqTA2f64biCPE8LwMMpWYgarLsjr9jm74e9", "score": 0, "level": "LOW", "sol": 0.0, "tx": 71, "wallet_created": "2026-02-10 14:28:01", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@FridjofMenting", "wallet": "7vfk4zN8zTvUs9kdartXLJywNTL3WaSvjHF1aL2f2mkt", "score": 0, "level": "LOW", "sol": 0.3622, "tx": 100, "wallet_created": "2026-07-10 08:17:32", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Lingard010", "wallet": "FFAq76erc5eBK4peZKjFjJwV5DHpFUjxVF5L2BdRBNQ3", "score": 0, "level": "LOW", "sol": 0.001, "tx": 6, "wallet_created": "2026-07-16 17:57:16", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dasaniCR", "wallet": "EowmiXvP33byMSYHuvp35sNCUbWhn2XgQoV99j4qGJvq", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-08-03 23:32:44", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@bhanupartapsinh", "wallet": "BhR4H3Lm1P3ZtEvk4HsBcs5baUJCCVhbCPB9a716ZPue", "score": 0, "level": "LOW", "sol": 0.0, "tx": 3, "wallet_created": "2026-07-06 00:50:42", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@starnutss", "wallet": "HGR14kfumxaqNXUM2Kp2e2G47HFSjT45pXHCpsiy1dtc", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-03-15 01:07:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Willlyy11", "wallet": "7Vk43bDRWduxfK5Mpx6LR8a3fV2TjY86DPD7SRRHu94Z", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2025-10-23 07:02:25", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Belloagain", "wallet": "EpW3xpQ73UjdkTuc1S8n2UwUsTxyEJPzKvQ1fAJ4ztwK", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-06-05 03:00:59", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Nybuzi", "wallet": "3eR5fGhimtPoykjuJmyqgGiH9uPivS8EXFnA3tduPsDZ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 4, "wallet_created": "2026-04-15 03:30:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@siennapo1", "wallet": "J7o1vryhC4d9gHVFkspjsBGuSpgytNkvEtDt26LLpCiZ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 5, "wallet_created": "2026-05-06 12:29:23", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Vickysolarchive", "wallet": "A6zwfSa9NhCWCdfc3JpvsvCy4rhzpEzMw4gnjaQCmoE7", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-04-27 01:38:40", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@____danerous__", "wallet": "AEfRQFaUjoYit274CrdGT5dpw6jcu7VojLEaCewpRYHM", "score": 0, "level": "LOW", "sol": 0.0014, "tx": 62, "wallet_created": "2025-11-19 13:28:40", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@mastaeagle", "wallet": "3jWxWgXDnWA8dazRkaLQAJaNDsyAEMB1EycNKb6g6NNC", "score": 0, "level": "LOW", "sol": 0.0151, "tx": 100, "wallet_created": "2026-02-22 11:38:51", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@whuttttzzz", "wallet": "KeedNxkMGYYmWiabStWmkrnaG6CR12xjZNY2QZEETp9", "score": 0, "level": "LOW", "sol": 0.005, "tx": 20, "wallet_created": "2026-01-09 08:51:08", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Syntheraioyv", "wallet": "AFHwcq6r8AVhNaJkbPvEneFZpPt9GApBYkxQkN7Fhju9", "score": 0, "level": "LOW", "sol": 0.0167, "tx": 100, "wallet_created": "2026-03-12 14:13:57", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Saouristas2024", "wallet": "CPRhxMgjw1ouMjXCcZN8cP7nvwKenHWvL547HxutHJmS", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@afeez_olabisi", "wallet": "A3vbusS75GDVWM9qecsNwHn6wkhip3gST21YwLty3oRB", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@SirSea420", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 80, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "No", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420"]}, {"handle": "@i_amkingdavo", "wallet": "DXg8PuQwnUF5Y7PWhmMoR6k793Vn1bHccyvP5B8izfdy", "score": 0, "level": "LOW", "sol": 0.005, "tx": 3, "wallet_created": "2026-01-30 08:50:10", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@BlakStatus", "wallet": "AuRqSebv5hSFgKQkiqhHkBzbqQ1B6BbqrsfMYVgq4zp1", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@rockergandalf", "wallet": "5ABzq6UCuj4x2WecA6XbJhKiYugLMABnPsjdTzBAGWTR", "score": 0, "level": "LOW", "sol": 0.1565, "tx": 100, "wallet_created": "2026-03-14 15:04:14", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@UlanWater", "wallet": "2QNsysQj3Nsnds4KrDwC3HrvKx6JdKNH7UeWu2WXvtEC", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@MystiqueTh9831", "wallet": "AQN17mLMvFJdGGsrgecuYn9zRunr5ozVctPyGR7HEPi8", "score": 0, "level": "LOW", "sol": 0.0, "tx": 31, "wallet_created": "2025-07-18 16:54:25", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@ArchieHigins_06", "wallet": "H1JQFgjSw1ZVtNB9bmWf8dCJyFhXdvhWsZfS1XmbULsc", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DelnFin", "wallet": "5QXsCtdbnnwDpjRgKRyT1jQjuNPv8Kyc8gSnfkr1uH59", "score": 30, "level": "MEDIUM", "sol": 0.0, "tx": 11, "wallet_created": "2026-08-11 04:34:21", "holds_token": "No", "verified": "No", "reasons": ["Wallet submitted 2 times by the same account", "Handle commented 2 times"]}, {"handle": "@4chainz_z", "wallet": "7MwZnZLFkfWdWdqwcvWRrS6SU8fZtPk8apvxaYgQCQjT", "score": 0, "level": "LOW", "sol": 0.0113, "tx": 100, "wallet_created": "2026-05-07 04:30:20", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@VeryRuthlesss", "wallet": "hMLe1SNeqoTfdszFD2fJFtrf1DNQvoKdjn2zLhYpurC", "score": 0, "level": "LOW", "sol": 0.005, "tx": 21, "wallet_created": "2026-04-16 16:56:19", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@evikraNtt", "wallet": "6k3NMZcyFh8hE27mnwF23DDJsM9F4F9WNbDpo6bzXQMm", "score": 0, "level": "LOW", "sol": 0.0118, "tx": 2, "wallet_created": "2026-07-30 02:03:22", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@CaszSarmiento", "wallet": "9cnwhq7xzkcYTgr4cK7jKaHzDN3D1tDHLwEKi2nBL9GD", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-13 14:03:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@MALWARE_999", "wallet": "J9hLNEBNNyWEtncwBL3WtwPMrt5B4iSPX9kmiiL5Sj5K", "score": 0, "level": "LOW", "sol": 0.1445, "tx": 100, "wallet_created": "2024-08-04 13:09:04", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@isbburger", "wallet": "9E4JMp9CtRkZLcd1wNQX9G2oikNxA6ZWJAmoRoi3E96P", "score": 0, "level": "LOW", "sol": 0.005, "tx": 100, "wallet_created": "2026-02-24 11:15:38", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@vaegarsol", "wallet": "9rRd3rZFW5KYtJ8BGoGwgzn1pVAT6fUHTfVyD5q9TWSq", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-08-19 17:31:03", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Layiszn", "wallet": "CLp9zwKVMdLiw2hgSP2s58Hj4wsvEQdsU5J5wX7xQLTf", "score": 0, "level": "LOW", "sol": 0.2638, "tx": 100, "wallet_created": "2026-07-30 00:23:58", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Paradise_G0", "wallet": "7TAfQsBBUGt53grGtVdNr5NTgDmZ53MosKFVmCFLENHr", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-28 19:29:39", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Defibrains", "wallet": "5tPRMedfohAADaGZMnhdCyUn39nz4DEpZwRKJMh9hW8i", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-01-23 18:41:49", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Lovelineledu", "wallet": "Dkte3EMfiCWRG5nq5StQjYj4R8scdtAxwfCj1wcRH8qs", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2025-08-04 03:09:13", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Yuskid22", "wallet": "J45uvVFHzNCNiK2qEHW7nBwfLvDztsS3PSe9QPa2dxVW", "score": 0, "level": "LOW", "sol": 0.0021, "tx": 10, "wallet_created": "2024-10-28 11:05:10", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Arm_strong0x", "wallet": "6H3es6AqX59d1Kda3DxzoYNzLdpWAqX4vabU184jBeSN", "score": 0, "level": "LOW", "sol": 0.001, "tx": 8, "wallet_created": "2025-03-28 01:31:13", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@theshoo3", "wallet": "DEe1bCoRNqVNKwigAPzqQ1hgZReG3voU27PkMdG9Qmr9", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2026-07-05 14:23:26", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@vengance24", "wallet": "GdfMjrFLqdo2CVL2uybUE8bgx1vTPzzTN4MpCwGTHnfZ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@webbegginner", "wallet": "2TasfeYZGXk6tdJuBU4qmzjq2UpEPWAaM5zqg8QyJLkW", "score": 0, "level": "LOW", "sol": 0.0087, "tx": 100, "wallet_created": "2026-07-25 13:33:53", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@prettyhinata67", "wallet": "4m6b6rdevkqyKJLkSkWVhmdwGnaVCUVLE6yxkCfbjaS2", "score": 0, "level": "LOW", "sol": 0.001, "tx": 38, "wallet_created": "2026-08-09 13:51:38", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Brainybtc", "wallet": "CDmZfpPXv2nqXyQ9QabZkjgVSWGuh47bXRqGnzgSVw1g", "score": 0, "level": "LOW", "sol": 0.0034, "tx": 11, "wallet_created": "2026-07-10 21:26:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@xDayLive8", "wallet": "9apNCFyeEzRKeDZ8wpRZvKh7ig8WuxQo8FJ1mJDiQkEA", "score": 0, "level": "LOW", "sol": 0.0, "tx": 4, "wallet_created": "2026-08-08 04:52:04", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@JayTheWinnerX", "wallet": "CAbKcA4WFra8EHngk3LrcveeoXkd1YNKfKKUkSvngchj", "score": 0, "level": "LOW", "sol": 0.0015, "tx": 100, "wallet_created": "2025-10-30 04:29:22", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@jiggyarc", "wallet": "6Jh7HWgev6ta17nTVyC9rfGwBe2tkJ249vTgozwqrMN7", "score": 0, "level": "LOW", "sol": 0.011, "tx": 100, "wallet_created": "2026-06-19 17:11:29", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dfw_Pearls", "wallet": "7wRcoNXjqWuFqrW3ddL5kN4uCJw4d7nbjPRHn9xj887r", "score": 0, "level": "LOW", "sol": 0.01, "tx": 7, "wallet_created": "2026-08-11 13:04:45", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@SolanaHQ_1", "wallet": "G4resQNunB4Zx5x2A6RhMbxVAvPjcFpm1BHd2cNQVb2y", "score": 0, "level": "LOW", "sol": 0.0, "tx": 53, "wallet_created": "2026-01-06 16:51:23", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Manonsol_", "wallet": "Cuoirrt9HoRBywo87ANbAafA7AyUaSfsCbYa6P8BPicF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 76, "wallet_created": "2026-05-26 15:34:48", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Trixxalt11", "wallet": "F9QWaL1cqPuxc5Szg9qw61CJcAPtmwVHaJZYX4rg5kAL", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-26 19:26:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Lucky_germilbv", "wallet": "5ZJ7dXyx3ha4Cc1C3w9U33HrE5Y6RTCRuMEK5NMdcbC1", "score": 0, "level": "LOW", "sol": 0.002, "tx": 14, "wallet_created": "2026-07-15 07:27:39", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@IamtayoT", "wallet": "Hm24nEnb8nERykLyogJxXBfHbaf3vzdPUnXTbB38b8eW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-03-11 11:47:45", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@breadnbeans01", "wallet": "5xW6PH5JYoTKVZhgHQ8qyUHTmnwSUQLsW9bH81jnKWry", "score": 0, "level": "LOW", "sol": 0.0, "tx": 6, "wallet_created": "2026-06-30 18:47:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Kryptoguy1_0", "wallet": "S3uaJLE1JyTrSutS39PVxWxJkwvKNcmiKJSzSNkoueP", "score": 0, "level": "LOW", "sol": 0.0117, "tx": 79, "wallet_created": "2026-07-09 04:02:45", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Ryxxdot", "wallet": "FtuTSRgcSCCD2d1eHbUEURzyXkkv3xkehz8GHhakm7vR", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-05-18 17:45:09", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Drey6_5", "wallet": "8rRoNsetq1UV58znkbpNxe9zbXtXEfTTWMurzq2VwpZ9", "score": 0, "level": "LOW", "sol": 0.0, "tx": 27, "wallet_created": "2026-07-17 09:44:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Wholashile", "wallet": "7VqXRwTCjZhpinfzFYRWj4BsVxzgwqmXfR1NydLH7QmA", "score": 0, "level": "LOW", "sol": 0.0038, "tx": 100, "wallet_created": "2025-04-05 14:02:39", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Taofeek2_QBX", "wallet": "5HS4vuwAs5aQYUphWtq154VBMViFGjQANdeMgtufRwbD", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-09-24 06:53:36", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Isagi_barou", "wallet": "H9JfUpVhLruwgZu2CnD4mhpwoaZxPxKGi6GvnDRpmfSY", "score": 0, "level": "LOW", "sol": 0.003, "tx": 78, "wallet_created": "2024-09-15 20:25:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Junomode", "wallet": "7cZ4QsN1uZjMyQCJA4pkt5AXR59nPpHkrEBEaQvvodyz", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-09-16 14:54:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@IzMario2", "wallet": "CGPt9WvLxHtCK6fnfEo93i143ZJkqgvXgSPx8c7K2oeS", "score": 0, "level": "LOW", "sol": 0.0013, "tx": 100, "wallet_created": "2025-06-09 17:24:13", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@luckyshaneee", "wallet": "FkJgP73vpq1YYLgT2HdgmTkDNT3xWkp6uKY57fMRErpc", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 8, "wallet_created": "2026-08-02 01:36:21", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Kellyofweb3Alt", "wallet": "FUuzRJjQRVxnLvW6Dfp9k3MVpZZfx9jnTbwQ4NaRMZDr", "score": 0, "level": "LOW", "sol": 0.0028, "tx": 100, "wallet_created": "2026-06-13 09:00:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ganieous", "wallet": "3RHcvEZ4mnLZ48FoH7H4vuzJxUaNFZ1M75mmTKJXwX6G", "score": 0, "level": "LOW", "sol": 0.0018, "tx": 67, "wallet_created": "2025-07-27 12:51:51", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Lithish1001", "wallet": "DUuGfDM8GXn733YNHvnDz2bjmN3MVwe9FkdaABt5wGG1", "score": 0, "level": "LOW", "sol": 0.0049, "tx": 100, "wallet_created": "2026-01-27 06:15:22", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@THEHR0", "wallet": "AtccobeQXiXerfxHb5Th23ixZaymfRfk6AxNpykfPYNr", "score": 0, "level": "LOW", "sol": 0.0, "tx": 29, "wallet_created": "2024-04-16 16:18:24", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@KayyFund", "wallet": "9sCiPe5em6ZCaXpcWh2uFappViP7gaR3A1qJ9UxXauEd", "score": 0, "level": "LOW", "sol": 0.1263, "tx": 100, "wallet_created": "2025-07-18 14:17:04", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@victorrr_077", "wallet": "96oHENUAdPABBtE4jXWZzAo1zKhryAHL6N6F5eLyzSwK", "score": 0, "level": "LOW", "sol": 0.0012, "tx": 4, "wallet_created": "2026-08-10 11:21:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@mayh3m_33", "wallet": "7nAkPPSkPLi3B24pkH2R2fyqLaPbzfq5t1uN9VB7iGZH", "score": 0, "level": "LOW", "sol": 0.1592, "tx": 100, "wallet_created": "2026-07-12 15:09:02", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@OkechukwuSheki1", "wallet": "7ZYVzQvWRzV4S7RswAzytHVSdrXjSA6V6EV3Kn37WjvW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-28 07:09:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@jaybeeotf", "wallet": "CqVay2ZLm2yMSA8bMcGUMma7ev5P6Fm2Ht6yz3t9dEHC", "score": 0, "level": "LOW", "sol": 0.2105, "tx": 100, "wallet_created": "2026-07-28 12:41:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Ade_053", "wallet": "4gRj5E6SCKnLykRLgYeTVEwcu9rbjPQebTj7FHvZaaoc", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-08-03 01:26:36", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@0xjayben", "wallet": "5jaD6tHR34QkdwG7sSdkf9cER5WVtUWkFGWrZ5fvbnHy", "score": 0, "level": "LOW", "sol": 0.015, "tx": 4, "wallet_created": "2026-07-24 12:26:16", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Amigo_4l", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@Testimony64", "wallet": "FvLgXW8AaH1Gtae6RsxWMduxkBxQkRk9JMmzckRqvtrE", "score": 0, "level": "LOW", "sol": 0.1262, "tx": 100, "wallet_created": "2026-07-31 10:43:15", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@GeorgeFaithful6", "wallet": "ExXdd25s9QkFTb1Sxipzy7A5GQq2jnDLn62aykzviJ7Q", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-01-22 17:21:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Ifwpromax", "wallet": "HCXcRmXEnKyos242dVqM9gUMg9UKGd5cVh2RLwcVsqsw", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2025-10-17 20:12:53", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@notspidey192", "wallet": "8iCrZMfGQ6wLTuoznbgCYD1sPiMAtgdLQEfvsmKrJXgG", "score": 0, "level": "LOW", "sol": 0.0, "tx": 4, "wallet_created": "2026-05-18 11:39:38", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dyktr3nchkid", "wallet": "879K61wn8TpJY6fuSWy6MK9G2WDVgsHARP6WHaEoyByk", "score": 0, "level": "LOW", "sol": 0.002, "tx": 7, "wallet_created": "2026-07-29 22:49:35", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Markofweb3X", "wallet": "Hudkn7zNsdD4LxTKYNeMecQFH2KkwoUxe3EUaCpGJXNw", "score": 0, "level": "LOW", "sol": 0.0048, "tx": 34, "wallet_created": "2026-07-24 11:21:02", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ifw_Tobi", "wallet": "5TdqDpiNn5NzkDYKzx5DxKBfK6U2WtBVqrtm33McBtbh", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-26 16:21:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Stickmanishim", "wallet": "EUVty5Ad5LqfCrGZg2H7JjhNK4FJuMb1xBZLpPHQLiM6", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-05-03 14:33:26", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@pupftsx", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@Big_____Tom", "wallet": "3PoT7U4vUNWAMHXX5r483AvqhWeCuLGs9kpLSB1srdmn", "score": 0, "level": "LOW", "sol": 0.0, "tx": 52, "wallet_created": "2026-07-31 16:57:14", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@srisasibe1", "wallet": "GHu6wuFoUCRnDtA6s6HQLLrBNonfGt2L6pkHLe343yJW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-03 16:08:43", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Mackxyz9", "wallet": "7kxTr8o3ru343Ues6eKKrr3bXht55eVtJKQmHi9tLw4Q", "score": 0, "level": "LOW", "sol": 0.0349, "tx": 64, "wallet_created": "2023-12-15 08:00:04", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@gelo_sol418", "wallet": "BxVrMYxTdijGLCu9LzsRJTnH8mdtzdHq6E7L3t4Pb1Zz", "score": 0, "level": "LOW", "sol": 0.0143, "tx": 100, "wallet_created": "2026-07-09 03:08:38", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dreay_1", "wallet": "FEdNAX3Y15gwAxVCXbd7FyXhZovu8ddNtbT5o5Rt2hjA", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@osmbreh", "wallet": "J92tKTmxycPZQ5J6wftMbhX8fG4CwPpnC9B6PGcfWx7a", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2025-05-07 09:16:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AmittCrypto", "wallet": "AZmVqcwgrULNd77XJfgtzQTxAymbfuWW9JoxUSv3meHB", "score": 0, "level": "LOW", "sol": 0.1433, "tx": 100, "wallet_created": "2025-03-06 08:47:34", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@THE_MMANUEL", "wallet": "7H4knp1Nxk2xSNZQ8jSCPn9qVcj5PdDS1W8DwwSbNLug", "score": 0, "level": "LOW", "sol": 0.001, "tx": 40, "wallet_created": "2026-07-13 05:16:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AkanmuEric", "wallet": "3DTs2ZeiwoawZEaeiUACz8FbGQ4v1k3HVYWv9pJpVuFz", "score": 0, "level": "LOW", "sol": 0.0, "tx": 13, "wallet_created": "2026-06-24 01:27:36", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@kriptomanniac", "wallet": "2tbMEoQNwBjanoHyAwMHanr88xejSpsqz1WQ961sFkuX", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-10-24 13:12:23", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@aethernoire", "wallet": "3kcqqBpovwi5Sqc2hx9pvDsQYVABRujPb7YQ312vh4G3", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-08-26 21:21:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Zamnoor3", "wallet": "DYiPERTLaRfU2EXUPBX691eorRQt59w9Qu3TDNBQAYnH", "score": 0, "level": "LOW", "sol": 0.0376, "tx": 100, "wallet_created": "2026-02-19 02:28:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Shevoxx", "wallet": "7BT2MLvEEenfoPw1W8P6v1fA7VTEc3DzZgoURygFSVB8", "score": 0, "level": "LOW", "sol": 0.001, "tx": 17, "wallet_created": "2025-11-18 22:52:13", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ansemholic", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@ishow_ola01", "wallet": "91iXMfpVikQzJd6UKXU5HENuJLPk8YTECXYmtswzZohP", "score": 0, "level": "LOW", "sol": 0.0011, "tx": 5, "wallet_created": "2026-04-23 07:28:55", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@zeig39042", "wallet": "CuCc2KyK21aK7yuxVjA9yNHpLYK5YhJMyDnsF4j5kat3", "score": 0, "level": "LOW", "sol": 0.0062, "tx": 5, "wallet_created": "2026-08-09 23:36:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@7Keips", "wallet": "FY65e2WRwbsCoa7UMeBKYRfEN179hkLvJig7xZrnxTWZ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2024-02-27 22:06:16", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@keepwinnerr", "wallet": "EXMnxbd1nRNLuLQFf4DYE4s7csgJXPbe5BucE4fzzMKH", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-02-24 10:36:34", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@girlhappi0", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@ViktorX_IJD", "wallet": "CuK6UFzEJwMXTQqFYWN3VbPvsQkz2zpU1ngbFXLadKtj", "score": 0, "level": "LOW", "sol": 2.0217, "tx": 100, "wallet_created": "2026-07-03 08:11:57", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@shaqcryptonite", "wallet": "7BCzT9Qx4NaU4UERTiivdy3x6vfeYYWszke1pcQYQqnh", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-11-14 14:14:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@hiver232", "wallet": "FSvZUpJvPpS7neyqZfcuYgBFRzFec9i7TVSkeAzHg4A2", "score": 0, "level": "LOW", "sol": 0.0, "tx": 15, "wallet_created": "2026-08-03 01:19:22", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@rektmfers", "wallet": "GGJwRHqJkdfiAdHNwqmrnvASzKjKbaATdMBunbwz4uwP", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-04-08 05:59:29", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@loxdotsol", "wallet": "GvmkJNRmhgNWy5revZNxU4KFy1YZH1a1ZdVRnkT14GEr", "score": 20, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-07-29 12:33:10", "holds_token": "No", "verified": "Yes", "reasons": ["Wallet submitted 2 times by the same account", "Handle commented 2 times", "Verified account"]}, {"handle": "@Praisewilldoit", "wallet": "J7xV2j6rokVsonqxojxwEGntXwGPbBS3yht9FbnvH215", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2026-05-26 13:02:47", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@marley_web3", "wallet": "2w2dmxnv6xu6T93ahzFh2iQQK7bbkzvQQdkHaxFCcn7B", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 6, "wallet_created": "2026-08-08 07:50:30", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@TheRealBossjamo", "wallet": "F7dysuySHxqTrAEgDJYo55MBEN9hJz2HaKupdpnMwT18", "score": 0, "level": "LOW", "sol": 0.0, "tx": 4, "wallet_created": "2026-08-03 16:02:16", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@granitexw", "wallet": "AVcUjpdrwNmYS1iUZ2Yy7pzqyiHcq5MzkD4o97p6vduP", "score": 0, "level": "LOW", "sol": 0.0, "tx": 15, "wallet_created": "2026-08-07 00:24:04", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@StevenAde_", "wallet": "3385b1DK7V8RKT5gBR2TyjWDaiaGQJAh3zfpUhtjNyxb", "score": 0, "level": "LOW", "sol": 0.001, "tx": 82, "wallet_created": "2026-02-04 14:40:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@mightyman1111", "wallet": "ELT58jSpZy9yhNv6GBUG1DsxUZ8quyjNDcieC3bruRYu", "score": 0, "level": "LOW", "sol": 0.0432, "tx": 30, "wallet_created": "2025-02-21 09:05:22", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Trading_Tort", "wallet": "9VPMyVhFg7i413wqH3HCTThgjS4oK2kABicfGqZ14A1d", "score": 0, "level": "LOW", "sol": 0.0684, "tx": 100, "wallet_created": "2026-08-04 02:24:19", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@SkipperXI", "wallet": "F2nG72HzC8spHjYr8RwoRVhTMexLTtGBUwiiPDRt5eJ2", "score": 0, "level": "LOW", "sol": 0.005, "tx": 48, "wallet_created": "2026-06-03 04:33:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@SAM_SOL_001", "wallet": "CCTjjycPJjo2T4aDcGdw8quBARWQX36g18BQ4gFMRtNF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-06-16 07:57:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@sayur1zz", "wallet": "2PKMujRJtbnj6oibW7bFvBBBLVhAvvctmbLnVBk1yska", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AdamXMeta", "wallet": "BXG2hvBXTaV5jiXxxPU56mwSXZvcCpnQj6Ri1i9KJRbg", "score": 0, "level": "LOW", "sol": 0.0062, "tx": 100, "wallet_created": "2026-01-24 03:09:47", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Quantzbet", "wallet": "8ub3xSMgvxK1aATLjxFQZ1pSnVL1Uhi6gKT18e7qt3dr", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Stylocy", "wallet": "GJQjUiz11a4E9rxrYXgywGKb6mu7Bdz2muyS9Kpj46U4", "score": 0, "level": "LOW", "sol": 0.0049, "tx": 6, "wallet_created": "2026-06-16 11:28:21", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@henevergivesupp", "wallet": "CBACC8tWsyLFqL7mXHZYrpJHu5WkbCuCia3fqHVZCt38", "score": 0, "level": "LOW", "sol": 0.0, "tx": 45, "wallet_created": "2026-07-01 00:01:53", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@creedmotion", "wallet": "2TnwF75CAGnpUqoTPfk1Cc3arSvvK1LThDdwXSnEWn8y", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2025-11-04 05:37:41", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@payybase122", "wallet": "3AHiTEigaQG6MXdhxD4uCUXb4HQADiK76ju7FtXPMKm1", "score": 0, "level": "LOW", "sol": 0.0, "tx": 43, "wallet_created": "2026-07-13 09:18:01", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@CadelAndri", "wallet": "728ZoK6SpFh8z5zYBYFMBskAnoUSHJyG3S9AvZpTk7ub", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2026-04-08 16:03:53", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@0xMichiX", "wallet": "ByDvtub4iimiEwTwfHxapFcJZwnB2JwYByRYKaiRN4Aa", "score": 0, "level": "LOW", "sol": 0.2495, "tx": 100, "wallet_created": "2026-08-03 14:44:31", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@damidotsol", "wallet": "Erj82qGGYoWxymfr5N6xw7YdUNtWmA3Ft24coXRKhgks", "score": 0, "level": "LOW", "sol": 0.0, "tx": 6, "wallet_created": "2026-08-02 22:46:01", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@mickaelanic", "wallet": "8Ax2AVWFzdTp4eDp7H6FEFXvBXxw6ExqnF88S2E42Ftg", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-05 22:54:17", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@shxdxwsage", "wallet": "24jrvsDsZ2yLA5jCKZX5vmnc7RymDUTkHLVXRFjswsDW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-12 19:48:07", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Blakes4566", "wallet": "23qNjrEfSSx5P4skaWoG43VTAm9iakS7tNNXs1RnV1Ra", "score": 0, "level": "LOW", "sol": 0.0, "tx": 13, "wallet_created": "2026-07-21 14:53:37", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AUGUSTUS0000000", "wallet": "9dNFfwYwmkK8chPndm3Fd4Vu7RAK9wMcykL9xc8rYw8G", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 54, "wallet_created": "2026-04-18 15:46:42", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Z4RIYUH", "wallet": "5APgHGzexn8bSMPPHWRDrRU3bwTu2mW3xcDMGnwL7XMX", "score": 0, "level": "LOW", "sol": 0.2511, "tx": 100, "wallet_created": "2025-08-14 11:08:45", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@malleyarc", "wallet": "BLHEkTVWTLAu2194HFBNovtW7W26kumaEXmAsRXfiHjS", "score": 0, "level": "LOW", "sol": 0.1179, "tx": 100, "wallet_created": "2026-06-26 14:54:26", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@maranathaP2023", "wallet": "7zYLxtiXEtTuvXGDkiLfQAHLYiRZdPU3p7ptiKfpqPvc", "score": 0, "level": "LOW", "sol": 0.0797, "tx": 100, "wallet_created": "2026-04-29 05:34:32", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Random_dude077", "wallet": "GbPZjsvDvDoe1eLgKVjayYaTJwLLQeYpxvbRn2gKyPVx", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-01-15 08:49:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@RAYOKxx", "wallet": "HDWu9vqLfWNQETWNJQbKfVCrS4YXhPUQ5yn5JHexa3RY", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-08-08 18:18:15", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@GeneralMartia", "wallet": "Gq3reryt4z8uKbekovfdkoambJPaYAKXNkpzGqrGnECP", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-03-13 03:01:21", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Womanempowerm10", "wallet": "J17E1dz7bKMdzgHeXQE5BgdhizCM7e6NYYZwmRde7vQT", "score": 0, "level": "LOW", "sol": 0.0161, "tx": 100, "wallet_created": "2026-05-02 05:43:23", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@siege4tw", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@MikeEze18", "wallet": "ZZTydia2vmLp9PhjxpeQwhte2sCNJ7ot7WhH3dCcY3C", "score": 0, "level": "LOW", "sol": 0.0165, "tx": 100, "wallet_created": "2025-10-31 03:21:53", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@DayoWeb3_", "wallet": "Az5jxe256Ekf6QCJfkTBzxeLawd1gWaHtt5yFFVRm3Wv", "score": 0, "level": "LOW", "sol": 0.0035, "tx": 100, "wallet_created": "2026-05-01 05:16:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@helloramses", "wallet": "FTEcd88ZzGbftLCn7uVHg6nr9Np1uUvUFjN9mEepQU3F", "score": 0, "level": "LOW", "sol": 0.074, "tx": 65, "wallet_created": "2026-07-25 06:20:05", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@wealthy_ladd", "wallet": "CUp1SBmosTfHMP63Qi8RKRCqMv2rcv86M288ZrmyuBKv", "score": 0, "level": "LOW", "sol": 0.0354, "tx": 100, "wallet_created": "2026-04-08 10:23:01", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Millxbt", "wallet": "H6FN9yEreqCAdpaej4gMyZULYuu7uqerLM6sxdnzhTTT", "score": 0, "level": "LOW", "sol": 0.01, "tx": 100, "wallet_created": "2026-04-22 00:38:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Gibxszn", "wallet": "3dMJknSsgD6qgRSnmxkLbvBVPWsooS6TkBxh165MmaQ3", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@10ofw3", "wallet": "33oUbiwBfXqHjHpG33N3Sq6tuptinxpF45hwLAVLeN5Q", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-02-28 16:34:03", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@rukogin", "wallet": "421VWqcr8Dam41z8BoA7Yn5G7unLKsWBWyLu4YiRdAjJ", "score": 0, "level": "LOW", "sol": 0.013, "tx": 7, "wallet_created": "2025-12-09 08:08:12", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@BukatyFrank", "wallet": "3T9qGVsfcw1HkQKjtJgSh7w2nAgHeQRXo96UhpFUtUaL", "score": 0, "level": "LOW", "sol": 0.0, "tx": 92, "wallet_created": "2025-03-05 13:23:24", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dreswago", "wallet": "3o824EzbWBRemcmV9ruz9VN8ucZt9HoLq1WMTXQ4GdV1", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-09-24 14:44:44", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Harlomodolars", "wallet": "52NJMmFY2rwTwzt16Liv16cbYZLnWiqedkiDBLDE8biA", "score": 0, "level": "LOW", "sol": 0.05, "tx": 3, "wallet_created": "2025-01-12 04:47:22", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Bagwoker", "wallet": "AYQ2k42NtroY64wQ4qHQAy4kuJwp2UFY768MEWxJi8Jj", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-08-01 19:24:11", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@0xhayzed", "wallet": "5SiDBqcA2gtvfszH9wQivyNjuuqtAkag5dNjAzKYLyyL", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-25 12:08:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Maverick_is_bac", "wallet": "3UsY4RWXKcuquvUYHoCTy9HGpunMaNGmo2Lz31VuoTLi", "score": 0, "level": "LOW", "sol": 0.0129, "tx": 46, "wallet_created": "2026-07-16 10:08:18", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Blessedinvestr", "wallet": "BQ3Gg9ucB7WnaShE4WpJnJTictWhyonXDs8ukbHHoBQM", "score": 0, "level": "LOW", "sol": 0.0, "tx": 12, "wallet_created": "2026-07-14 12:52:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@A_meennn", "wallet": "ELdW5GhJ5ENNvKUYhRvbx8yXpH3M5GxLPNpEQ9SEvyur", "score": 0, "level": "LOW", "sol": 0.004, "tx": 16, "wallet_created": "2025-01-05 14:42:50", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Jimmyyweb3", "wallet": "FHJBUTs3YwNFRX4WAKBFArjX6vCpFeZwqYV1q6HhjmzV", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 76, "wallet_created": "2026-07-12 10:49:04", "holds_token": "Yes", "verified": "Yes", "reasons": ["Wallet shared across 2 accounts: @godwillinq, @jimmyyweb3", "Verified account"]}, {"handle": "@AboyAsDEXIRO", "wallet": "533CWCa3ysqzMzbVFXi8Hz2tfhXzDrYampGDH7dQPP7h", "score": 0, "level": "LOW", "sol": 0.0106, "tx": 100, "wallet_created": "2025-11-09 11:54:03", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@psysco_", "wallet": "8VNWdQXNpvBbz2c1fykfMPczDzA3mnvxgSoaBfP5Vu9y", "score": 0, "level": "LOW", "sol": 0.4217, "tx": 100, "wallet_created": "2025-11-07 07:55:07", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AYCRRYPT9we", "wallet": "9h9aRxeG3ynSDnrx9BqMTxgfzEMTwwCEWPmbGRTfU1nS", "score": 0, "level": "LOW", "sol": 0.001, "tx": 54, "wallet_created": "2026-06-04 02:21:18", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@jegax_", "wallet": "9Syc9JnedXzEhkb8DuMn2DsAQDmCqusJt7BqF6VeGeJu", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2026-03-08 10:42:43", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@oluwa_feezar", "wallet": "C7ouMXxc2PCQZPJ9yPbZ9cN6fbU76KybxXoXeagSfxLh", "score": 0, "level": "LOW", "sol": 0.0, "tx": 68, "wallet_created": "2026-02-17 01:37:21", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@TaeKay17", "wallet": "42o1WNqzGcWMqYSoSumNreoPuN4s7KCf6je2epPowvSB", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-06 00:10:57", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Aizen1000x", "wallet": "2Bu1xngmkYSvbxvYdmjo9CWoKVUBxfNdvncBZibkS1DT", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@YahyaSuntan", "wallet": "E2yTHeNtiaXBZEsuxPShHu9yyjNyQ8VsTfyLrrPdLCNo", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-04-26 11:29:37", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DamiCheckers", "wallet": "J6WjSVyehEXzTQFtVQn2hBgdP6irhVURP11enJsUsQdt", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@HashimA27173479", "wallet": "BK8pCGkhFVkWhQYNt2X2RBvECob8UaGxeCtgmmnzDxpc", "score": 0, "level": "LOW", "sol": 0.0048, "tx": 12, "wallet_created": "2026-05-13 13:46:21", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@_onesammy", "wallet": "D9RQ7Fz4SZXFT1hmRvt3FaM6jbpLrvWGfKf5Ty7mLttt", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-09-25 19:14:39", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ab1wle", "wallet": "Fp4ty6V34FT8Xi3zv117wVEE4AEadG6HeFAZoME9Wv6z", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Hamezs7", "wallet": "CSKKR2n3v1nm6oC4buGfrdKaVVKaTDxPLQnqtnhDJPQA", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2024-05-20 12:47:36", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@ceteblue", "wallet": "DR9YfxrsxEeAEFWkfYWe8Xbv1t2wyfmyQ3JNbcQN4NvE", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@waseem4570", "wallet": "CA7FDTVqxdm4sH19Zgfd8xNqnHjby8QMBngnbPZ6s4nX", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@alwayslovepjs", "wallet": "EH1vqxy9SnUsJgu9gi1BTnYAgagd6wus9xiMKT456bha", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 2, "wallet_created": "2026-08-11 03:05:13", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@yabesronii", "wallet": "6Atxgt4k4MniV4e18LBKS5gXXe8GUKz4Vmko1c1t1EQG", "score": 0, "level": "LOW", "sol": 0.0011, "tx": 100, "wallet_created": "2026-08-04 11:48:16", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Mustaph97093101", "wallet": "Hd352wSxCD7bseU62x8z39zqahCtygxW8YZV3oAcPYA3", "score": 0, "level": "LOW", "sol": 0.0045, "tx": 27, "wallet_created": "2025-10-14 02:16:43", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@TaHT000", "wallet": "fa4JFjbBtaRSdSnUotxjEvBfEkUPpjvM8mVKc3Axmmq", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2025-09-18 13:59:07", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@softwuhv", "wallet": "J6zpvejxjKoJykJkX5K6PHhAFDdZyHZz21AxkLFxPJLg", "score": 0, "level": "LOW", "sol": 0.0051, "tx": 25, "wallet_created": "2025-06-01 03:44:45", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Sandi5552013855", "wallet": "4SPfhUp11BuaThoMpcBAgiiyWZpSAHukhFcYfEQtsbas", "score": 0, "level": "LOW", "sol": 0.002, "tx": 100, "wallet_created": "2026-06-25 19:50:59", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@sub_b00mer", "wallet": "2dmrr8LBDEkYorF5Jis7ZEa4Qx3C8PwDmvWhUoWGv828", "score": 0, "level": "LOW", "sol": 0.0019, "tx": 19, "wallet_created": "2025-02-12 14:25:56", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@mulyonojo12", "wallet": "6QPGpBEDWSyDWBnPLQcqvHxjGbAuL9wnVYA8Sz7hSNMN", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 100, "wallet_created": "2025-05-31 03:52:27", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Maampuwin", "wallet": "BCCn4cGSYSTRNEJq5PSee5RwcEibVXKJz8BPxyk17sJv", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Hollywwoodevv", "wallet": "GDdWzR4sMAER5j7N6PKUqud9qJMZGEeHWVmha5HqX7fx", "score": 0, "level": "LOW", "sol": 0.0, "tx": 93, "wallet_created": "2026-07-12 10:22:04", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Imgskrishna", "wallet": "CMjNBAwRsbWWEhV1Tf4xxifYRCvQuHaXiQmVJAcxvzMo", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Ntd1501", "wallet": "EWCcqBpJ7uwK674aJZG5VD4Txxev5FatR1y4KDVqChty", "score": 0, "level": "LOW", "sol": 0.0012, "tx": 100, "wallet_created": "2025-01-19 22:03:36", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@mopidopee", "wallet": "5kx9HyCyKB2m19MjFNwaLyLnHkFQVsEq1PouwSjnS9Gj", "score": 0, "level": "LOW", "sol": 0.0075, "tx": 1, "wallet_created": "2026-08-09 13:52:15", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@multivindo", "wallet": "4SjUA82mZiJmkbcy4JDfSsBHaykCMLaUAxwidS6Q3hys", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DagnalisLoL", "wallet": "ooJP5XrtiLUis6Au3jUJALhud3SHaYX2TcXa4PCweTM", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DuongTien990", "wallet": "HZk8pLrqadd8teDftFLVSg2xpuziCcHTMsxHGtiG1Hbj", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Faithfulonuth7", "wallet": "4k2psk5WnmiQtCPgzZ7yNN7GScLe1aM9jbjHEWV7mPX4", "score": 0, "level": "LOW", "sol": 0.0392, "tx": 100, "wallet_created": "2026-08-11 20:48:09", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Airdropsbob", "wallet": "CW2fmXKnr4A2zrQvzqYpSBTHvx4ta2hM7XZQg8rSLGns", "score": 0, "level": "LOW", "sol": 0.0, "tx": 70, "wallet_created": "2025-07-06 04:36:22", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@jegersthh", "wallet": "7a1eNA69LqMNPrF33fuQixxKzDB3yWC5L2fnxxoNDTSN", "score": 90, "level": "HIGH", "sol": 0.0, "tx": 2, "wallet_created": "2026-07-08 23:19:55", "holds_token": "No", "verified": "No", "reasons": ["Wallet shared across 2 accounts: @gazaliir, @jegersthh", "Duplicate comment used by 2 accounts", "Highly similar comment (100%)"]}, {"handle": "@Belottinni", "wallet": "Hvr5cHEMygD4Rpq2dGTLyTPaQx5LuU3wcZDMEppNL3Dx", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@BrookBee_17", "wallet": "4Xy5BhmSeukc7DCWgj5ryVAtbi7nmYJcz51rhRrYEYCk", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-08-15 11:53:23", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@leonardoduko1", "wallet": "6jCopebwob2gqkZdfDrkyb4Cn2oWe3mDqtB64og2VDvB", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-12-28 15:11:40", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@aimushara100", "wallet": "7mzxtA2apzMXHv6ohVsf3BdJKqiZibKegatXcSwJ4gTY", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@damian889346", "wallet": "48m9K8jf6369pnj8Nka7AEyFKPar7j18iNb2G3vQDvbA", "score": 0, "level": "LOW", "sol": 0.0, "tx": 56, "wallet_created": "2026-08-04 19:23:10", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@AmmarEv10", "wallet": "37JDwoZLcAHKog7TgJ6qgiJrafX3wMNpcDbkghb6Weid", "score": 0, "level": "LOW", "sol": 0.0, "tx": 6, "wallet_created": "2026-03-22 11:42:01", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@jalindar55", "wallet": "3eMKZNR3CXjNMXeqfWgfHcz6ygHo2f4mxsu2XcjW9d64", "score": 0, "level": "LOW", "sol": 0.0012, "tx": 100, "wallet_created": "2026-07-12 15:24:36", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@The_kid214", "wallet": "GLQmhHaRQqfSVgv5c9LGoN7ieZcHXHvZEB2AcSa3CBKZ", "score": 0, "level": "LOW", "sol": 0.3177, "tx": 100, "wallet_created": "2026-03-18 09:15:22", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@bitcom01", "wallet": "BW1de6rF7YQFiefLC9veSYMZfE18BxHYT77jSdTy9kEm", "score": 0, "level": "LOW", "sol": 0.0064, "tx": 100, "wallet_created": "2026-08-01 13:01:54", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Mason01x", "wallet": "9TrgM86PpYj5f4s8F2KJh4Vup6m5Rvjpe8rse9r2exRM", "score": 0, "level": "LOW", "sol": 0.0124, "tx": 100, "wallet_created": "2025-11-12 03:06:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@YoungJohn_004", "wallet": "9C4ZKVBUdjHVYT7p3ksDDZfHXtHFqZNNsoEVsT2qCdr3", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-25 04:54:10", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Godwillinq", "wallet": "FHJBUTs3YwNFRX4WAKBFArjX6vCpFeZwqYV1q6HhjmzV", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 76, "wallet_created": "2026-07-12 10:49:04", "holds_token": "Yes", "verified": "Yes", "reasons": ["Wallet shared across 2 accounts: @godwillinq, @jimmyyweb3", "Verified account"]}, {"handle": "@WhishesBoy", "wallet": "3Sk4xFrQufhf7Z1xZx6kfi3ugjDGrvixLErmH2tKQnHf", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-03-10 22:28:27", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@vangoghsx", "wallet": "AgJjZqkLU4KCJbEJ55noFsvAC2kreRyeboaYk8M6HSai", "score": 0, "level": "LOW", "sol": 0.2997, "tx": 100, "wallet_created": "2026-06-21 15:45:07", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@abiola_turner", "wallet": "END4iP51AaYBJrGSAJwQRv3YiRM6QQF8JtiBjnTsa9X3", "score": 0, "level": "LOW", "sol": 0.1466, "tx": 100, "wallet_created": "2026-05-30 12:49:17", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Mac3eee", "wallet": "EUQvdHJT1iA9k1ZGT14k3uVPAEiZd9Zvj4fHfUdL5LbP", "score": 0, "level": "LOW", "sol": 0.0, "tx": 47, "wallet_created": "2026-01-04 13:52:28", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@DegenFlOwX_", "wallet": "DoNeEnDz1MoPxmZmgyJCSdzGTdRu5MpqLYs614hGfVv5", "score": 0, "level": "LOW", "sol": 0.003, "tx": 100, "wallet_created": "2026-07-09 12:34:24", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@DannyYhoung", "wallet": "AdrARjhz1UVXy3KAWPowPSEx4pSzCp2SwLkxJJ7ptCMy", "score": 0, "level": "LOW", "sol": 0.002, "tx": 88, "wallet_created": "2025-12-05 09:59:38", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Samdav0", "wallet": "JBUNype9yLXg5CjmPvagTURsvUh3XQvnTrE7HYnbYGYx", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-28 14:19:29", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Crypto_Hashira1", "wallet": "D9L8Uhsrks9UhKD3ATyeTX43eiobW9VkEVYc2Xk5sdwF", "score": 0, "level": "LOW", "sol": 0.0185, "tx": 99, "wallet_created": "2026-01-28 10:32:02", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@A_2ice_", "wallet": "2QpikDKEmfZrwTY4WpTo5Hy44PtU75gu49pz5SwevZYy", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-24 00:36:31", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@vh412k", "wallet": "HWaPTPBSeBWY2QBu6Cz3VGUs1r2qupg7CN5KXQN5tN8a", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@cryptorboe", "wallet": "4Ra1ZT9cfF7giPSPNkCmZf5m2rAkHQRMSCPEp22hB6Hk", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-09 20:15:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Raphmond_", "wallet": "3uYQW4KY9Et1krUnnTPsaf5fS5YFWT46rRHpHyEx4a4A", "score": 0, "level": "LOW", "sol": 0.0, "tx": 14, "wallet_created": "2024-12-25 13:54:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@vallerruyy_", "wallet": "H81oc3M2yVUemBZp7BHTkV46DF8zvHAwhAheXVP1tYN2", "score": 0, "level": "LOW", "sol": 0.007, "tx": 100, "wallet_created": "2025-10-27 05:11:58", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Regularboy04", "wallet": "9YaKQDDqCih68iqiXoY2mTvcikWDmAgp2MYDT91KoAue", "score": 0, "level": "LOW", "sol": 0.001, "tx": 28, "wallet_created": "2026-07-13 15:30:25", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Itsmeowluck", "wallet": "Fp8bMp1x4n7vCTTngCFdseu3q1eCn2mC8ZQx2Y7Y3ZPx", "score": 0, "level": "LOW", "sol": 0.001, "tx": 20, "wallet_created": "2026-02-08 05:47:56", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Shadow_Zeiq", "wallet": "7FZLe6XUcob4bthcMZ6ex1maDBj41arDXN7u9ePnYmwg", "score": 0, "level": "LOW", "sol": 0.0, "tx": 6, "wallet_created": "2026-07-31 15:56:45", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Ogeg_", "wallet": "7Uq8Hkk5CBJVGAPjCGkzQSar1u9khf5DAuMoUjsyVwhn", "score": 0, "level": "LOW", "sol": 0.02, "tx": 4, "wallet_created": "2026-07-16 16:41:09", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@harryysol", "wallet": "DkSijKAGf1T2SZTeV3X1To3bZFjYAeVGidRXoWbYsNqu", "score": 0, "level": "LOW", "sol": 0.0, "tx": 48, "wallet_created": "2026-03-05 13:37:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Feigures", "wallet": "2TCpNo5QDDzREbCsMet57P3XavMgxLv8tdK6AGyV8rxX", "score": 0, "level": "LOW", "sol": 0.1374, "tx": 100, "wallet_created": "2026-08-02 14:22:44", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@28blocboy", "wallet": "2e5xsjYs9P5YZrA36FMRiBwc8A8G7EyzWn4iNBvjLe1i", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-04-05 06:51:59", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ptrskrarum", "wallet": "Ct3WzKyyRq7KhM1xKZbgFizvgEzErmrpVjZwsGFHQiGw", "score": 0, "level": "LOW", "sol": 0.2189, "tx": 100, "wallet_created": "2025-12-26 11:20:23", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Mammoth_0x", "wallet": "GdSfvhvmAphmpPEk7gycPvtsea8No6TPjuSDv6sjL6Uo", "score": 0, "level": "LOW", "sol": 0.0146, "tx": 100, "wallet_created": "2026-03-29 18:38:05", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@kaponeOthello", "wallet": "84khGbmwF1GM94mMff1uCZWPXGunX8ypd2gY3G1L8hzi", "score": 0, "level": "LOW", "sol": 0.0667, "tx": 100, "wallet_created": "2026-04-09 12:52:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@unknwnchris", "wallet": "GsfgbKJtXDSggfgS4gdGURcPHBoipnP27doyqi5UrTKX", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-02-05 18:50:00", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@omoadelion", "wallet": "7L3GRqzvdGXQMWL2LdVAzFRNGXQvSFZHijya8cdvF9nS", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 3, "wallet_created": "2026-08-07 11:06:37", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Justosinofweb3", "wallet": "ZmFe33Fzz1abhTMxaJMMhXNaq5MPG2CjV8cUKMZtXFW", "score": 0, "level": "LOW", "sol": 0.1046, "tx": 18, "wallet_created": "2026-08-06 15:10:07", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Axelson142", "wallet": "HhQg1BsJdqwAV1PGmJzRx9W9rk1KDkhHgUCptXy8FkHj", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-02-22 12:50:38", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@actvi3va", "wallet": "zUydCtHgKG8qiHtBURSXS8rqQjE9vbuLJzN34ebih4w", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-04 07:59:22", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Cryptopian87", "wallet": "AX2bRNshMo2cArCdgcaJUunFxingarjyyMh7d2ChvYeu", "score": 0, "level": "LOW", "sol": 0.0131, "tx": 100, "wallet_created": "2026-07-06 06:13:20", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@xSondor58", "wallet": "4GjWJYp3e8Sz9UcxuuMj3CTYynpioieu4GwWLYBiMYvg", "score": 0, "level": "LOW", "sol": 0.1328, "tx": 100, "wallet_created": "2026-08-02 02:50:56", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@saggzisback", "wallet": "Dvw1j1cnBdVtj4bi3zermCnzqgzbPyajxa861F6JdSF2", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-01 06:45:54", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@lizeth_0426", "wallet": "CWryFNG6yr27eF3WFobfeKedaZXrC68vr3Phhq7U3Ye8", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DawgPound1218", "wallet": "FTxrKCpfr12ugsCg9kc4yHKeV6cjHNNrmeQGcEdGXxTC", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@swagokala", "wallet": "6z6YJGn9iJgF3KPD8LzGryAupoH7jiDqoRCRWf9YqvD", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 20, "wallet_created": "2025-04-08 04:28:59", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Invarchc5", "wallet": "2HVVMvH6gNuMy1rrfTA8AcbLi35cpj4F3dt5wwurwLLU", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Boy_daeniel", "wallet": "Ge49wWcRaG7iAB7ZFPUu7HkDgAhoqt9Ejewag8mZR1BL", "score": 0, "level": "LOW", "sol": 0.0, "tx": 2, "wallet_created": "2021-05-24 20:40:23", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@0xGKz", "wallet": "HsZNm1SfDmuDfoJyrV4TANcia6QNEzR41MDKe3Nybhrg", "score": 0, "level": "LOW", "sol": 0.4027, "tx": 100, "wallet_created": "2026-03-31 04:27:36", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ArtemKovalevsk3", "wallet": "E5DnCgb69iRg9xTFSPvoCidYT8MsPysJx8ypBLs7M6fT", "score": 0, "level": "LOW", "sol": 0.0282, "tx": 100, "wallet_created": "2026-05-20 12:18:30", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@snipe_01_", "wallet": "2KXTgGaJPquAHCq6Dm99o3Aoas7sxaeBBTCpwKoBtQPy", "score": 0, "level": "LOW", "sol": 0.0, "tx": 76, "wallet_created": "2026-06-25 04:11:10", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Lerexbt", "wallet": "LereopRG3EfUzwzLpKnSmuNU1d27K4XgxCigRd6R5TE", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-08-02 08:05:31", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@zer0_panic", "wallet": "3wPBTN8B4gqtSmUqQsuHqrCnKkjBBJbDhmHNj6gtDtU3", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-02-14 23:54:19", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@derekWeb3", "wallet": "9gMHTW5BouVcCm8Uzqnj2gnL3YxgpatSFncokK2iSzif", "score": 0, "level": "LOW", "sol": 0.0, "tx": 21, "wallet_created": "2026-06-09 00:34:23", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@lonerfrmdao", "wallet": "8BAeBcJMqp1h5ak2w6RcZr3F6gQkWvWZtKj3RKZFBTF5", "score": 0, "level": "LOW", "sol": 0.4469, "tx": 63, "wallet_created": "2026-07-04 17:01:08", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@dblezzz", "wallet": "iTiLp4VdK2urg31UZnBFdQRAoZxAvaBvhnUb8jQHBtW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-03-18 19:43:57", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@unnimayaNavi", "wallet": "FUXX9cfNqwbxuCBcJb3w9PA4JGvwutgBqW21rQFp8YZ7", "score": 0, "level": "LOW", "sol": 0.0015, "tx": 4, "wallet_created": "2026-01-14 04:03:55", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@sniper_x07", "wallet": "7PBpNXJ2RVHgpGuet2qtKnLd7qoy6Xvj5WcuNGVAXTV9", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-12-30 06:14:42", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Voxstry001", "wallet": "6pxbBiVCmi6y2iAS1WazhLcQzWxiWV6rbbpoaYTGKbMw", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@WhoCares_Visu", "wallet": "FFnCruKxhqRt4KXczu8qwGq8YtNQAGQBy3sEtMSwFuLp", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-10 16:34:30", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@crypto_FAR", "wallet": "Ba5uEbFwNvbxy3YeDD2rBZ8N6DCXCfJyoaC6FBS69HkE", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@0xMervin", "wallet": "Hn4pMnpTW9yJkjTDGVcPFpn1UJ72TDo54bjLQVKSuS1w", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-08-02 13:37:01", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Herrn18", "wallet": "ED5MPkd4vAtmW33fv9YQhYV5L46gaS73Po8VYmpnkJi4", "score": 0, "level": "LOW", "sol": 0.2514, "tx": 30, "wallet_created": "2026-07-27 09:55:15", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@parsa126128", "wallet": "AYvDVYu7wM22u4CA4ajLsK49t9GcxBkBuUM9QNipzwPG", "score": 0, "level": "LOW", "sol": 0.0031, "tx": 100, "wallet_created": "2025-10-02 12:37:49", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@TeGaReXx", "wallet": "7ALfVEht2qG7GmTn8JHArRqqkr2XmZrsB8ZdPprC7AAF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 3, "wallet_created": "2026-08-05 02:34:29", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@hunter_xzn", "wallet": "2Ga9wa9KmwwNZJMFCFwgts8tQAoyFiXb9VoDpEeFQJvz", "score": 0, "level": "LOW", "sol": 0.0, "tx": 53, "wallet_created": "2026-07-07 13:21:10", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@farhan_sheikh7", "wallet": "3RWpH7K8B2RbvWr2CpDMHjyp2MDTMYi7ScR6B82NmujJ", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 22, "wallet_created": "2025-06-18 14:12:36", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Dontbelike_folu", "wallet": "7jR8UWV2AXNeq9U3aFVx1Ev81xnF5xupZhoR3MkNVBmY", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-05-23 10:48:17", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@kwinkys", "wallet": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump", "score": 70, "level": "HIGH", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "Not Checked", "verified": "Yes", "reasons": ["Wallet shared across 7 accounts: @amigo_4l, @ansemholic, @girlhappi0, @kwinkys, @pupftsx, @siege4tw, @sirsea420", "Verified account"]}, {"handle": "@RaqibulHossain", "wallet": "DSWq2WHB6dU7fyUC1uUkBawSvNwyyNBmWeFjGsaiS5Tq", "score": 0, "level": "LOW", "sol": 0.0247, "tx": 96, "wallet_created": "2021-04-28 06:30:12", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Baxt38000", "wallet": "5nad5Lq2GrerkjToLzRTzUwTcd7Pq1WFE7vCP92QMjNF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-08-04 04:25:07", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@exacobain69", "wallet": "8QomJttKB4Me7iSxeNhiBw9XGhexdFRvAEEvNCTBoJWQ", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-06-20 04:53:50", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@MARA_SUIG", "wallet": "6kxR8uVx3zdC6wLbaAqqkmR6wFSU4kc75qATGdTpTBNU", "score": 0, "level": "LOW", "sol": 0.0087, "tx": 79, "wallet_created": "2026-07-28 12:52:37", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@rivenfade", "wallet": "929i74APru1G2aSfXqrcgyJvZ3eD5UtMbtN1n5JBAE3f", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2026-07-23 23:38:10", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@LydiaOkeme", "wallet": "AJbg1tjH6oJ17SpvS7bxL1wf1Uq9A5VMtyxsrQNWnNr3", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-08-17 04:06:15", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Big_Metta", "wallet": "9cYQ8Ys4eqcFocsSiyKptWcu22wyDBLcQF2hSG7gqcW5", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AyomideTheGuru", "wallet": "AmY384Cbf3aKm2bxNztkL4udTGMdk22NQpkjVxguCKQh", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-04-26 18:00:27", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@roshekidd", "wallet": "82wsM4eQpTe15qrLs7Uj78ATXggKynsUEuU3eW3aLmo6", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-01-26 11:32:48", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@H3R1114N", "wallet": "9PMZAbPGRW7jaZYQiYddVuFJxWbhCxSHC7e94HU5LZzA", "score": 0, "level": "LOW", "sol": 0.0078, "tx": 100, "wallet_created": "2026-07-18 03:10:33", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@faqodfaaaz", "wallet": "2VLreF6ZrPEMEULreLLytk6tw5NUSTdDNKgrcPQbTUuE", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2025-06-01 03:47:48", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@christianah404", "wallet": "AuM8rJhPLPoNiicuiAQFkshkytmPVZv6yRfSE4EKCUSH", "score": 0, "level": "LOW", "sol": 0.1006, "tx": 100, "wallet_created": "2026-06-14 13:52:25", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@joseoneth", "wallet": "EuAdB6A5AksrvSP6k1ncyCvxxrjGkLTv7STZzVfgz1q9", "score": 0, "level": "LOW", "sol": 0.0, "tx": 92, "wallet_created": "2026-05-28 18:15:43", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Okpunyifavour", "wallet": "HmRY16Y6meAKNjiU4Wcc5k32fk1vKwbeuocmzajwBF4n", "score": 0, "level": "LOW", "sol": 0.0394, "tx": 100, "wallet_created": "2026-01-06 16:56:57", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Fwjaquez", "wallet": "DnmqMgikhVKakQGCLLLVJn4WLt4AqiLBDgmvq31SbgjT", "score": 30, "level": "MEDIUM", "sol": 0.0, "tx": 100, "wallet_created": "2026-07-23 04:06:23", "holds_token": "No", "verified": "No", "reasons": ["Wallet submitted 2 times by the same account", "Handle commented 2 times"]}, {"handle": "@wistin01", "wallet": "5cSDhi9gQvgiRmWYVg2uLT8zHAKAcN8H539bZC93RxaG", "score": 0, "level": "LOW", "sol": 0.3064, "tx": 82, "wallet_created": "2026-04-26 12:07:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Muchas_Graci45", "wallet": "EjoxxBfEXiT8HqQv729Z8bEu6j1JMi2iJE5izsVEmVHF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 17, "wallet_created": "2023-08-15 10:06:55", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Patzifier", "wallet": "HzoKxs4mxedjTBE3CiJeF45zzfNUAWE8dNKp1HAbkVMy", "score": 0, "level": "LOW", "sol": 0.0027, "tx": 100, "wallet_created": "2025-11-03 09:43:09", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@jeremyguych1l", "wallet": "7YAkym2i7RdkQoNHboDRgmzcY5yunBExE8XZAgAHJEHW", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-08-11 03:20:30", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@meharg50", "wallet": "s2TsxGGS81fxPHXVmkrcGF5XC6335zntyTVc62Zbaxz", "score": 0, "level": "LOW", "sol": 0.0016, "tx": 4, "wallet_created": "2026-08-05 07:39:32", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@0viemuno", "wallet": "4zqGP6qKpgEpaeaBGKboWsVGT4v2Yzbo1fBa9T1dNADb", "score": 0, "level": "LOW", "sol": 0.001, "tx": 55, "wallet_created": "2022-07-26 13:05:27", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Tessymanny", "wallet": "6Ju3BwoPkiFnr4tgifAhYqm2QzerZ2kHhF6y5wMkUXHW", "score": 0, "level": "LOW", "sol": 0.0046, "tx": 17, "wallet_created": "2026-06-25 10:58:50", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@iyandahodl", "wallet": "EiKpLissnEwix9wz5yNUDWs9Yw6ro2f1YThXFiySRv8P", "score": 0, "level": "LOW", "sol": 0.0, "tx": 2, "wallet_created": "2026-07-15 11:13:28", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Gazaliir", "wallet": "7a1eNA69LqMNPrF33fuQixxKzDB3yWC5L2fnxxoNDTSN", "score": 90, "level": "HIGH", "sol": 0.0, "tx": 2, "wallet_created": "2026-07-08 23:19:55", "holds_token": "No", "verified": "No", "reasons": ["Wallet shared across 2 accounts: @gazaliir, @jegersthh", "Duplicate comment used by 2 accounts", "Highly similar comment (100%)"]}, {"handle": "@SahrulHuda48156", "wallet": "ApyfESFkAKZAWE99A11bH1PBu4Z43aEHNrjDHiy3eFW9", "score": 0, "level": "LOW", "sol": 0.0009, "tx": 34, "wallet_created": "2026-06-02 22:30:09", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@0xRennnn", "wallet": "9xCoxmCPBZwPR6KJK3DFmZ9nXFKCL3qWMQKkZRUpCbF", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-01-28 02:57:18", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@RexxieXBT", "wallet": "97YW1BU8A5oohJqKNTTgTgnw1u2dd2MAJ2E2t1Wg5toM", "score": 0, "level": "LOW", "sol": 0.0013, "tx": 29, "wallet_created": "2026-06-28 19:22:54", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@_theyfwola", "wallet": "7sC42Y4yRMEyaBm3o7v2FWctGpJW1hr4Qmek7yj4Vjgb", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-03-30 08:34:18", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@vvinjutaan", "wallet": "5ECNfcBPyJpMxxLaF9H237XxfouuwWxPvB5RJSno6JcR", "score": 0, "level": "LOW", "sol": 0.0, "tx": 1, "wallet_created": "2024-11-13 09:38:48", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@MaherZweb", "wallet": "R33GnyZNuddWLPpPng2GxR2k4hCQiZANeJXdC9bJfEN", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@BryanOBrien1028", "wallet": "AU6b6BGqzCRQnznEK8ZxLrEKz5akU7L3FVGep1sE9LuJ", "score": 0, "level": "LOW", "sol": 0.0038, "tx": 100, "wallet_created": "2025-05-14 11:57:19", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@keshman705", "wallet": "AJuE4wAfZUZrPkXDAjAzjhGnNgrEnSmKdo9ob8ZBSLUg", "score": 0, "level": "LOW", "sol": 0.0042, "tx": 100, "wallet_created": "2025-09-23 06:59:47", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Ukajp170198", "wallet": "CkjoArYLHMituStMenGwvHjunbeamkJQGhK2Nnu9JeyU", "score": 0, "level": "LOW", "sol": 0.773, "tx": 53, "wallet_created": "2026-08-07 09:44:54", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Brando924Jp", "wallet": "96kNMBGjQ7YKcnhhgMgjWfngXb5M2fiygwpk5pjPFmXb", "score": 0, "level": "LOW", "sol": 0.0084, "tx": 100, "wallet_created": "2026-07-30 18:48:24", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@rexywow", "wallet": "54VR8F1dhy2rXr8qYc3y9H96JoeFoQj1V66UV2XenMnA", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Jayballrx", "wallet": "8yRtHTuYhMo1uPrwq87Kt5kZeB5f2VgGrB3G3dxmxm2i", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Jjilla1458", "wallet": "xYRPNQDf3WVxuKP9QousVvCsf89RRdPYAx6xiTgQwLL", "score": 0, "level": "LOW", "sol": 0.0037, "tx": 100, "wallet_created": "2026-08-12 03:11:25", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@akhil22638867", "wallet": "69dgNiiYZUBQa67CgWH5xxkE74ufTCttk4baN8UDr8oT", "score": 0, "level": "LOW", "sol": 0.0018, "tx": 28, "wallet_created": "2026-01-14 01:32:19", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@kikidotsol", "wallet": "3bM73tYjrVy1nfT2paANuPPEtn31JAs9iZFSyLnMppqK", "score": 0, "level": "LOW", "sol": 0.0024, "tx": 100, "wallet_created": "2026-03-01 17:10:38", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Unclejayy01", "wallet": "buD17A1BbuRutRPc5BCy7wKapn3EuZGHTRT2Zeduu2t", "score": 0, "level": "LOW", "sol": 0.0049, "tx": 100, "wallet_created": "2025-12-12 12:41:57", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@wcrypto137", "wallet": "HycUD8w2y6eUB1joNnVLjTrNBfXbqxunNxLZ4N1S9Cjb", "score": 0, "level": "LOW", "sol": 0.0137, "tx": 100, "wallet_created": "2025-12-29 23:38:56", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@trent_800", "wallet": "6PqKEoaY14xwqXGR5kpb4ZZ6xt5Vz49XooM5PdTRoYUP", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-12-24 07:40:43", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@fwmaverickk", "wallet": "F5vMMf5SQq1VXyGwZ9ZoRRG2P4zXLrivw6mcq9fRE9ko", "score": 0, "level": "LOW", "sol": 0.0089, "tx": 100, "wallet_created": "2026-07-20 02:22:25", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Ocee_3", "wallet": "2nVhNQN9sWA1B5y1tvusnivxHWJ1BXUFd7mRH1b9Rwcs", "score": 0, "level": "LOW", "sol": 0.0083, "tx": 100, "wallet_created": "2025-11-14 06:55:17", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ThegreatFLOD", "wallet": "7eUmzyaEG4st18vW7vyRqN18eohv1wgiyCNVa3pcoTAk", "score": 0, "level": "LOW", "sol": 0.0035, "tx": 100, "wallet_created": "2025-08-29 03:29:55", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@FlamezOnChain", "wallet": "8TrWbpyXod8BxfxPLPQHHk5rGbU5iSdndP9ojzWD5E9M", "score": 0, "level": "LOW", "sol": 0.0, "tx": 41, "wallet_created": "2026-02-04 18:33:49", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@bagus_galuh_25", "wallet": "FJWec7bck5S6FAEMS8uiL8JWfbqHXx9CyZ6z37atF45p", "score": 0, "level": "LOW", "sol": 0.0, "tx": 5, "wallet_created": "2026-08-10 13:36:04", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@dholmahia", "wallet": "FYZpZUh78qdJHTPgRGQ93ns5ctGd45MnWUcj8y9AM2Z5", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@CRYPTOKING7_", "wallet": "KTdnGoicjorArBMgLS3WqiRY9qzof7za8DY79nvYAgU", "score": 0, "level": "LOW", "sol": 0.0, "tx": 0, "wallet_created": "Unknown", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@SolMufasa", "wallet": "BakyXRTtW2cdivHrqoENQhSfaMjGLRgDudV8QSBGcKNf", "score": 0, "level": "LOW", "sol": 0.0, "tx": 85, "wallet_created": "2026-06-07 14:54:32", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@agassi_35", "wallet": "3FK8kVpejMbdWAHGVBfJMCAVj5vXDgN43zLUC4oeyfsN", "score": 0, "level": "LOW", "sol": 0.5822, "tx": 60, "wallet_created": "2025-04-24 16:44:14", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@zeda_king", "wallet": "BvGPWHYLvTMbjr452YqY1EWmJFi8VtmoCH3miYNCTghm", "score": 0, "level": "LOW", "sol": 0.0588, "tx": 100, "wallet_created": "2026-03-08 16:13:10", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@Twtfor1Sola", "wallet": "4Vj1NQXwKSK7QGfadGHkJxnnfVkskhsXJB47YxmB3LfR", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-04-03 11:58:29", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@anshshah0900", "wallet": "AFQDe3i9PULxxnyax86yuc5Y2zEiBmuGFY1JSf2k1B7z", "score": 0, "level": "LOW", "sol": 0.0027, "tx": 27, "wallet_created": "2025-09-09 00:18:42", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@HriddhanM", "wallet": "BHN8baCvFcrwEuLHvshBrhJQjAwvRZ1o1DJgaF7rs9br", "score": 0, "level": "LOW", "sol": 0.11, "tx": 100, "wallet_created": "2025-09-16 15:52:07", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@DPhoenix_d", "wallet": "71SoeKUmceTwrrpTUiWRSzBNpRKY7pEzKMCn76KLyLSQ", "score": 0, "level": "LOW", "sol": 0.0569, "tx": 100, "wallet_created": "2026-05-24 19:53:23", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Saad_Rajpoot08", "wallet": "6mX5qQQxZBLXQJdEZZND4c1bkbHwtTVQp5WHcbH2bFrS", "score": 0, "level": "LOW", "sol": 0.0057, "tx": 64, "wallet_created": "2025-11-03 17:37:04", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@yrnzaza", "wallet": "ZAZAVPEFF5kQrR3iDz3YdFbMCEqDMCcGkPzMmjTVFKk", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2026-08-02 08:58:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@meltober", "wallet": "ESDQ3PrTsnvudcahPZwW9UQBwRjjq67R5GS9jbbeNoBq", "score": 0, "level": "LOW", "sol": 0.0, "tx": 19, "wallet_created": "2026-07-27 18:07:46", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@pratikvaja05", "wallet": "7hetCyM3SFqpGcoSjkfnYYDHaP4XaAG5Gw5poy3xY7Qk", "score": 0, "level": "LOW", "sol": 0.0, "tx": 10, "wallet_created": "2024-06-27 04:29:39", "holds_token": "No", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@CYpRuS_0", "wallet": "2qpvNF4EfZ1NeP3GrJk59mUaMPW2obJEAniE5BELFDgt", "score": 0, "level": "LOW", "sol": 0.022, "tx": 46, "wallet_created": "2024-07-20 07:04:02", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@rexy7835", "wallet": "5996QFrBR5zE3CHiQUhKdqCptUfbVvqcEeGyL6xM6A89", "score": 0, "level": "LOW", "sol": 0.0, "tx": 100, "wallet_created": "2025-04-21 08:58:49", "holds_token": "Yes", "verified": "No", "reasons": ["Perfect Score"]}, {"handle": "@pathezzy", "wallet": "7H8Hgfu5dSR915XTikERGDUVScnzTvCGWoC9LZtPUNuP", "score": 0, "level": "LOW", "sol": 0.001, "tx": 100, "wallet_created": "2026-05-24 09:15:06", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@Underdvg_", "wallet": "GNpoo4S9YczZU9zkWxUaksxhY9pmqAC6xuCWa6oJER2N", "score": 0, "level": "LOW", "sol": 0.0065, "tx": 100, "wallet_created": "2025-11-06 10:01:43", "holds_token": "Yes", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@amaloversclub", "wallet": "Ghxnf3hc9SUPh69MdR6KxV9MPNofbvdJ5t79MTKEvqrb", "score": 0, "level": "LOW", "sol": 0.0154, "tx": 13, "wallet_created": "2026-08-03 06:22:14", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@ifwraviel", "wallet": "AGV8qxjuWHok11CsqysjS1N1jQL2j7jRGpJgMGuJJmxu", "score": 0, "level": "LOW", "sol": 0.0023, "tx": 100, "wallet_created": "2026-08-10 09:27:38", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}, {"handle": "@AgonW3", "wallet": "77Tz3VmJDitEJZ7rL2u1Fx5B3MPwt4a2sNEnYgpmRFFV", "score": 0, "level": "LOW", "sol": 0.0036, "tx": 100, "wallet_created": "2026-05-22 01:15:35", "holds_token": "No", "verified": "Yes", "reasons": ["Verified account"]}];
+    let currentFilter = 'ALL';
+
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = 'Plus Jakarta Sans';
+
+    const ctxPie = document.getElementById('riskPieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'doughnut',
+        data: {
+            labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+            datasets: [{
+                data: [327, 2, 11],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 0,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+            },
+            cutout: '70%'
+        }
+    });
+
+    const ctxBar = document.getElementById('solBarChart').getContext('2d');
+    const fundedCount = 172;
+    const unfundedCount = 340 - fundedCount;
+
+    new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: ['Funded Wallets (>0 SOL)', 'Unfunded Wallets (0 SOL)'],
+            datasets: [{
+                label: 'Wallet Count',
+                data: [fundedCount, unfundedCount],
+                backgroundColor: ['#6366f1', '#1e293b'],
+                borderRadius: 8,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { grid: { display: false } },
+                y: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+            }
+        }
+    });
+
+    function renderTable() {
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        const filtered = data.filter(item => {
+            const matchesLevel = (currentFilter === 'ALL') ||
+                                 (currentFilter === 'FUNDED' && item.sol > 0) ||
+                                 (currentFilter === 'HOLDS_TOKEN' && item.holds_token === 'Yes') ||
+                                 (item.level === currentFilter);
+
+            const reasonsText = Array.isArray(item.reasons) ? item.reasons.join(' ') : item.reasons;
+            const matchesSearch = item.handle.toLowerCase().includes(search) ||
+                                  item.wallet.toLowerCase().includes(search) ||
+                                  reasonsText.toLowerCase().includes(search);
+
+            return matchesLevel && matchesSearch;
+        });
+
+        filtered.forEach(item => {
+            const tr = document.createElement('tr');
+            const txDisplay = (typeof item.tx === 'number' && item.tx >= 100) ? '&#8805; 100' : item.tx;
+
+            let reasonsHtml = '';
+            if (Array.isArray(item.reasons)) {
+                reasonsHtml = item.reasons.map(r => {
+                    const isPerfect = r.toLowerCase().includes('perfect score');
+                    return `<span class="reason-tag ${isPerfect ? 'reason-clean' : ''}">${r}</span>`;
+                }).join('');
+            } else {
+                reasonsHtml = `<span class="reason-tag">${item.reasons}</span>`;
+            }
+
+            tr.innerHTML = `
+                <td><strong style="color: #fff;">${item.handle}</strong></td>
+                <td class="font-mono">${item.wallet}</td>
+                <td><strong style="color: #f1f5f9;">${item.sol.toFixed(4)}</strong> <span style="color: var(--text-dim); font-size: 0.78rem;">SOL</span></td>
+                <td class="font-mono">${txDisplay}</td>
+                <td style="font-size: 0.82rem; color: #94a3b8;">${item.wallet_created}</td>
+                <td><span style="color: ${item.holds_token === 'Yes' ? '#10b981' : '#64748b'};">${item.holds_token}</span></td>
+                <td><strong style="color: #fff;">${item.score}</strong></td>
+                <td><span class="level-badge level-${item.level}">${item.level}</span></td>
+                <td>${item.verified}</td>
+                <td class="reasons-col">${reasonsHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function filterLevel(level, btn) {
+        currentFilter = level;
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderTable();
+    }
+
+    document.getElementById('searchInput').addEventListener('input', renderTable);
+    renderTable();
+</script>
+
+</body>
+</html>
